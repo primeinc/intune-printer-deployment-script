@@ -1,25 +1,32 @@
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = 'Install')]
 param (
     [Parameter(
         Mandatory=$true,
-        Position=0)
+        ParameterSetName="Install")
     ]
     [string]$DriverName,
+
     [Parameter(
         Mandatory=$true,
-        Position=1)
-    ]
-    [string]$PrinterName,
-    [Parameter(
-        Mandatory=$true,
-        Position=2)
+        ParameterSetName="Install")
     ]
     [string]$PrinterHostAddress,
+
     [Parameter(
-        Mandatory=$false,
-        ParameterSetName="Snmp")
+        Mandatory=$true,
+        ParameterSetName="Install")
     ]
-    [switch]$SNMP
+    [Parameter(
+        Mandatory=$true,
+        ParameterSetName="Remove")
+    ]
+    [string]$PrinterName,
+
+    [Parameter(
+        Mandatory=$true,
+        ParameterSetName="Remove")
+    ]
+    [switch]$Remove
 )
 
 
@@ -142,7 +149,7 @@ function Install-PrinterDriver {
 }
 
 # Attempts connecting to the printer on the required IP address
-# Will return a success if connection is established, false otherwise
+# Will return true if connection is established, false otherwise
 function Test-PrinterAvailable {
     param (
         [string]$PrinterHostAddress
@@ -244,25 +251,58 @@ function Install-LocalPrinter {
 $LogFilePath = (Join-Path -Path $env:SystemRoot -ChildPath $("temp\install-printer"))
 [System.IO.Directory]::CreateDirectory($LogFilePath) | Out-Null
 
+if (! $Remove){
+    Write-Log -Message "####### Staring Printer Installation #######"
 
-Write-Log -Message "####### Staring Printer Installation Script #######"
+    try{
+        $DriverPath = Get-DriverPath
+        Install-PrinterDriver -DriverPath $DriverPath -ErrorAction stop
+        Install-LocalPrinter -DriverName $DriverName -PrinterName $PrinterName -PrinterHostAddress $PrinterHostAddress
+    }
+    catch{
+        $Fields =[PSCustomObject]@{
+            Message = $_.Exception.Message
+            ScriptName = $_.InvocationInfo.ScriptName
+            LineNumber = $_.InvocationInfo.ScriptLineNumber
+            PositionMessage = $_.InvocationInfo.PositionMessage
+            Exception = $_.Exception
+        }
 
+        Write-Log -Message ($Fields | Format-List -Force | Out-String) -Severity Error
 
-try{
-    $DriverPath = Get-DriverPath
-    Install-PrinterDriver -DriverPath $DriverPath -ErrorAction stop
-    Install-LocalPrinter -DriverName $DriverName -PrinterName $PrinterName -PrinterHostAddress $PrinterHostAddress
-}
-catch{
-    $Fields =[PSCustomObject]@{
-        Message = $_.Exception.Message
-        ScriptName = $_.InvocationInfo.ScriptName
-        LineNumber = $_.InvocationInfo.ScriptLineNumber
-        PositionMessage = $_.InvocationInfo.PositionMessage
-        Exception = $_.Exception
+        exit 1
+    }
+}else{
+    Write-Log -Message "####### Staring Printer Removal #######"
+
+    Try {
+        #Check to see if the printer already exists.
+        $Printer = Get-Printer -Name $PrinterName -ErrorAction SilentlyContinue
+        if ($Printer) {
+            Write-Log -Message "Removing $PrinterName" -Severity Information
+            Remove-Printer -Name $PrinterName -Confirm:$false
+
+            $PrinterPort = Get-printerPort -Name $Printer.PortName -ErrorAction SilentlyContinue
+            if ($PrinterPort){
+                Write-Log -Message "Removing Printer Port $($Printer.PortName)"
+                Remove-PrinterPort -Name $Printer.PortName -ComputerName $env:computername -Confirm:$false
+            }
+        }else{
+            Write-Log -Message "$PrinterName was found on the system"
+        }
+    }
+    Catch {
+        $Fields =[PSCustomObject]@{
+            Message = $_.Exception.Message
+            ScriptName = $_.InvocationInfo.ScriptName
+            LineNumber = $_.InvocationInfo.ScriptLineNumber
+            PositionMessage = $_.InvocationInfo.PositionMessage
+            Exception = $_.Exception
+        }
+
+        Write-Log -Message ($Fields | Format-List -Force | Out-String) -Severity Error
+
+        exit 1
     }
 
-    Write-Log -Message ($Fields | Format-List -Force | Out-String) -Severity Error
-
-    exit 1
 }

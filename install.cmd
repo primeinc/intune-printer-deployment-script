@@ -1,0 +1,1 @@
+powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -file .\Deploy-Printer.ps1 -DriverName "Kyocera ECOSYS PA3500cx KX" -PrinterName "My New Printer" -PrinterHostAddress "10.10.10.70"
