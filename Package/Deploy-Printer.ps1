@@ -1,3 +1,27 @@
+<#
+    .SYNOPSIS
+    Installs or removes a printer from the local system
+
+    .DESCRIPTION
+    The Deploy-Printer.ps1 script will install the drivers found in the sub folder 32bit, 64bit, or arm64
+    depending the system architecture into the windows driver store. Once drivers are installed a new
+    TCP/IP printer is created on the the local system.
+
+    .PARAMETER DriverName
+    Specifies the driver that the new printer queue should use when it is created.
+
+    .PARAMETER PrinterName
+    Specifies the name that the new Printer queue should be created with.
+
+    .PARAMETER PrinterHostAddress
+    Specifies the IP address or FQDN that the printer can be found at. A standard TCP/IP printer port is created
+    using this as its PrinterHostAddress value.
+
+    .PARAMETER Remove
+    If this switch is used, the script will remove the printer and the printer port from the system instead.
+    Note that the Printer Driver is not removed the system, only the printer queue and printer port are removed.
+
+#>
 [CmdletBinding(DefaultParameterSetName = 'Install')]
 param (
     [Parameter(
@@ -23,7 +47,7 @@ param (
     [string]$PrinterName,
 
     [Parameter(
-        Mandatory=$true,
+        Mandatory=$false,
         ParameterSetName="Remove")
     ]
     [switch]$Remove
@@ -89,7 +113,7 @@ function Write-Log {
 # and the folder the script is run from
 function Get-DriverPath {
     $ScriptPath = $PSScriptRoot
-    $DriverPath = "PrinterDriver\64bit"
+    $DriverPath = "64bit"
 
     $Arch = ([System.Runtime.InteropServices.RuntimeInformation,mscorlib]::OSArchitecture.ToString().ToLower())
 
@@ -97,9 +121,9 @@ function Get-DriverPath {
 
     switch ($Arch)
     {
-        "x64" {$DriverPath = "PrinterDriver\64bit"}
-        "x86" {$DriverPath = "PrinterDriver\32bit"}
-        "arm64" {$DriverPath = "PrinterDriver\arm64"}
+        "x64" {$DriverPath = "64bit"}
+        "x86" {$DriverPath = "32bit"}
+        "arm64" {$DriverPath = "arm64"}
         default{
             Write-Log "Unknown System Architecture: $Arch" -Severity Critical
             Exit 1
@@ -183,7 +207,7 @@ function Install-LocalPrinter {
     )
 
     # Creating a Standard TCP/IP Port
-    $PortName = "IP_$PrinterHostAddress"
+    $PortName = "$PrinterHostAddress"
     $PrinterPortExists = $true
 
     try{

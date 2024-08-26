@@ -1,3 +1,8 @@
-PrinterDriver/32bit/*
-PrinterDriver/64bit/*
-PrinterDriver/arm64/*
+Package/32bit/*
+Package/64bit/*
+Package/arm64/*
+Package/install.cmd
+Package/remove.cmd
+InTuneWinAppUtil.exe
+*.Intunewin
+Detect-Printer.ps1

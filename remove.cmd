@@ -1,1 +1,0 @@
-powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -file .\Deploy-Printer.ps1 -PrinterName "My New Printer" -Remove
