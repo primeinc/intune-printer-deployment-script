@@ -275,6 +275,33 @@ function Install-LocalPrinter {
 $LogFilePath = (Join-Path -Path $env:SystemRoot -ChildPath $("temp\install-printer"))
 [System.IO.Directory]::CreateDirectory($LogFilePath) | Out-Null
 
+$argsString = ""
+If ($ENV:PROCESSOR_ARCHITEW6432 -eq "AMD64") {
+    Write-Log "Powershell Process is 32Bit, restarting in 64Bit" -Severity Warning
+
+    Try {
+        foreach($k in $MyInvocation.BoundParameters.keys)
+        {
+            switch($MyInvocation.BoundParameters[$k].GetType().Name)
+            {
+                "SwitchParameter" {if($MyInvocation.BoundParameters[$k].IsPresent) { $argsString += "-$k " } }
+                "String"          { $argsString += "-$k `"$($MyInvocation.BoundParameters[$k])`" " }
+                "Int32"           { $argsString += "-$k $($MyInvocation.BoundParameters[$k]) " }
+                "Boolean"         { $argsString += "-$k `$$($MyInvocation.BoundParameters[$k]) " }
+            }
+        }
+        Start-Process -FilePath "$ENV:WINDIR\SysNative\WindowsPowershell\v1.0\PowerShell.exe" -ArgumentList "-ExecutionPolicy Bypass -File `"$($PSScriptRoot)\Deploy-Printer.ps1`" $($argsString)" -Wait -NoNewWindow
+    }
+    Catch {
+        Write-Log "Failed to start a 64Bit Powershell session" -Severity Critical
+        Exit 1
+    }
+
+    Exit $LASTEXITCODE
+}else{
+    Write-Log "Powershell session is $ENV:PROCESSOR_ARCHITECTURE" -Severity Verbose
+}
+
 if (! $Remove){
     Write-Log -Message "####### Staring Printer Installation #######"
 
