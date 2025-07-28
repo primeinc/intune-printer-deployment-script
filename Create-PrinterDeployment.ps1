@@ -40,7 +40,13 @@ $InstallFilePath = Join-Path -Path $PackagePath -ChildPath $InstallFileName
 $RemoveFileName = "remove.cmd"
 $RemoveFilePath = Join-Path -Path $PackagePath -ChildPath $RemoveFileName
 $DetectionFilePath = Join-Path -Path $PSScriptRoot -ChildPath "Detect-Printer.ps1"
-$IntunePrepTool = Join-Path -Path $PSScriptRoot -ChildPath "InTuneWinAppUtil.exe"
+# Check if running in GitHub Actions and tool is cached
+$CachedToolPath = Join-Path -Path (Split-Path -Parent $PSScriptRoot) -ChildPath "intune-printer-deployment-script\InTuneWinAppUtil.exe"
+if ($env:GITHUB_ACTIONS -and (Test-Path $CachedToolPath)) {
+    $IntunePrepTool = $CachedToolPath
+} else {
+    $IntunePrepTool = Join-Path -Path $PSScriptRoot -ChildPath "InTuneWinAppUtil.exe"
+}
 
 $Url = "https://github.com/microsoft/Microsoft-Win32-Content-Prep-Tool/raw/master/IntuneWinAppUtil.exe"
 
@@ -72,7 +78,7 @@ if (!(Test-Path -Path $intunePrepTool)){
 }
 
 Write-Host "Creating the InTune Win32 Package"
-.\InTuneWinAppUtil.exe -c $PackagePath -s $InstallFileName -o $PSScriptRoot -q
+& $IntunePrepTool -c $PackagePath -s $InstallFileName -o $PSScriptRoot -q
 
 $textInfo = (Get-Culture).TextInfo
 $SafePrinterName = $PrinterName.Replace(":", "-")
