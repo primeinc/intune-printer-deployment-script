@@ -75,7 +75,8 @@ Write-Host "Creating the InTune Win32 Package"
 .\InTuneWinAppUtil.exe -c $PackagePath -s $InstallFileName -o $PSScriptRoot -q
 
 $textInfo = (Get-Culture).TextInfo
-$IntuneWinFile = $textInfo.ToTitleCase($(Join-Path -Path $PSScriptRoot -ChildPath "$PrinterName.intunewin").ToString().ToLower()).Replace(" ", "_")
+$SafePrinterName = $PrinterName.Replace(":", "-")
+$IntuneWinFile = $textInfo.ToTitleCase($(Join-Path -Path $PSScriptRoot -ChildPath "$SafePrinterName.intunewin").ToString().ToLower()).Replace(" ", "_")
 Write-Host "Renaming Package file to $IntuneWinFile"
 $IntuneSourceFile = Join-Path -Path $PSScriptRoot -ChildPath "install.intunewin"
 Rename-Item -Path $IntuneSourceFile -NewName "$IntuneWinFile"
